@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oggetti nello Spazio — Allenamento Test Medicina</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --correct: #2ecc71;
+    --wrong: #e74c3c;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #556070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .header-stats {
+    display: flex;
+    gap: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stat-val { font-size: 20px; font-weight: 600; color: var(--text); }
+  .stat-lbl { color: var(--text3); font-size: 10px; letter-spacing: .06em; }
+  #timer-val { color: var(--accent); }
+  #score-val { color: var(--correct); }
+
+  /* ── LAYOUT ── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 0;
+    max-height: calc(100vh - 57px);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 20px;
+  }
+  .panel-label {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: var(--surface);
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* ── CONTROLS ── */
+  .controls-panel {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 28px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .rotation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+    gap: 4px;
+  }
+  .rot-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, border-color .15s, transform .1s;
+    user-select: none;
+  }
+  .rot-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+  .rot-btn:active { transform: scale(.95); }
+  .rot-btn.center { background: transparent; border-color: transparent; cursor: default; font-size: 11px; color: var(--text3); }
+
+  .divider { width: 1px; height: 60px; background: var(--border); }
+
+  /* ── EXERCISE MODE ── */
+  .exercise-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .exercise-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .answers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .answer-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .answer-btn:hover { background: var(--accent2); border-color: var(--accent2); }
+  .answer-btn.correct { background: var(--correct) !important; border-color: var(--correct) !important; }
+  .answer-btn.wrong { background: var(--wrong) !important; border-color: var(--wrong) !important; }
+
+  .feedback {
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 20px;
+    color: var(--text2);
+  }
+  .feedback.ok { color: var(--correct); }
+  .feedback.fail { color: var(--wrong); }
+
+  /* ── ACTION BUTTONS ── */
+  .actions { display: flex; gap: 10px; margin-left: auto; flex-shrink: 0; }
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background .15s, border-color .15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn:hover { background: var(--border); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #3a7de8; }
+
+  /* ── OBJECT SELECTOR ── */
+  .object-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .obj-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    transition: all .15s;
+  }
+  .obj-btn:hover, .obj-btn.active {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+
+  /* ── MODE BADGE ── */
+  .mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .mode-badge.free { background: rgba(79,142,247,.15); color: var(--accent); border: 1px solid rgba(79,142,247,.3); }
+  .mode-badge.exam { background: rgba(124,92,191,.15); color: #a07ee8; border: 1px solid rgba(124,92,191,.3); }
+
+  /* ── SEQUENCE DISPLAY ── */
+  .seq-display {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    min-height: 32px;
+  }
+  .seq-arrow {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: rgba(79,142,247,.15);
+    border: 1px solid rgba(79,142,247,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+  }
+
+  /* ── TARGET DISPLAY ── */
+  .target-info {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .target-info code {
+    font-family: 'JetBrains Mono', monospace;
+    color: #a07ee8;
+    font-size: 13px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--border);
+  }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width .3s;
+  }
+
+  /* Animations */
+  @keyframes flash-correct { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 3px var(--correct)} }
+  @keyframes flash-wrong   { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 3px var(--wrong)} }
+  .flash-ok  { animation: flash-correct .4s }
+  .flash-err { animation: flash-wrong .4s }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Oggetti nello Spazio <span>— Test Medicina AMS</span></div>
+  <div class="header-stats">
+    <div class="stat"><div class="stat-val" id="timer-val">10:00</div><div class="stat-lbl">Tempo</div></div>
+    <div class="stat"><div class="stat-val" id="score-val">0</div><div class="stat-lbl">Corrette</div></div>
+    <div class="stat"><div class="stat-val" id="total-val">0</div><div class="stat-lbl">Totale</div></div>
+    <div class="stat"><div class="stat-val" id="streak-val">0</div><div class="stat-lbl">Serie</div></div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: Starting position -->
+  <div class="panel" id="panel-start">
+    <div class="panel-label">Posizione di partenza</div>
+    <canvas id="canvas-start" width="380" height="340"></canvas>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- RIGHT: Target position -->
+  <div class="panel" id="panel-target">
+    <div class="panel-label">Come è stato manipolato il cubo?</div>
+    <canvas id="canvas-target" width="380" height="340"></canvas>
+  </div>
+
+  <!-- BOTTOM: Controls -->
+  <div class="controls-panel">
+
+    <!-- Rotation pad -->
+    <div>
+      <div class="exercise-title" style="margin-bottom:8px;">Rotazione manuale</div>
+      <div class="rotation-grid">
+        <div></div>
+        <button class="rot-btn" id="btn-up" title="↑ Ruota su (tasto ↑)">↑</button>
+        <div></div>
+        <button class="rot-btn" id="btn-left" title="← Ruota sinistra (tasto ←)">←</button>
+        <div class="rot-btn center">3D</div>
+        <button class="rot-btn" id="btn-right" title="→ Ruota destra (tasto →)">→</button>
+        <div></div>
+        <button class="rot-btn" id="btn-down" title="↓ Ruota giù (tasto ↓)">↓</button>
+        <div></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Exercise section -->
+    <div class="exercise-section">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="exercise-title">Modalità esercizio</div>
+        <div class="mode-badge free" id="mode-badge">● Libera</div>
+      </div>
+
+      <div id="free-controls" style="display:flex; flex-direction:column; gap:8px;">
+        <div class="object-selector" id="object-selector">
+          <span style="font-size:11px;color:var(--text3);">Oggetto:</span>
+        </div>
+        <div style="font-size:12px; color:var(--text3);">Usa le frecce per ruotare. In modalità Esercizio rispondi alla domanda.</div>
+      </div>
+
+      <div id="exam-controls" style="display:none; flex-direction:column; gap:8px;">
+        <div class="target-info">
+          Seleziona le <strong style="color:var(--text)">2 rotazioni</strong> in sequenza che trasformano la scena a sinistra in quella a destra:
+        </div>
+        <div class="answers" id="answers"></div>
+        <div class="feedback" id="feedback"></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px;color:var(--text3);">Tua scelta:</span>
+          <div class="seq-display" id="seq-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Action buttons -->
+    <div class="actions">
+      <button class="btn" id="btn-reset-view">Reset Vista</button>
+      <button class="btn" id="btn-toggle-mode">Modalità Esercizio</button>
+      <button class="btn primary" id="btn-next">Prossimo →</button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CORE 3D ENGINE
+// ═══════════════════════════════════════════════════════════
+
+const ARROW = { right:'→', left:'←', down:'↓', up:'↑' };
+const COLORS = {
+  sphere:    [0x4f8ef7, 0xe74c3c, 0x2ecc71, 0xf39c12, 0x9b59b6],
+  cone:      [0xff6b6b, 0xffd93d, 0x6bcb77, 0x4d96ff, 0xc77dff],
+  helix:     [0x00d4ff, 0xff9a3c, 0xa8ff78, 0xf093fb, 0x43e97b],
+  torus:     [0xffbe0b, 0xfb5607, 0x8338ec, 0x3a86ff, 0x06d6a0],
+  crystal:   [0x74b9ff, 0xfd79a8, 0x55efc4, 0xfdcb6e, 0xa29bfe],
+  mixed:     [0xf8f8f8, 0xcccccc, 0x888888, 0x4f8ef7, 0xe74c3c],
+};
+
+// Object type definitions
+const OBJECT_TYPES = [
+  { id:'molekula',  label:'Molecola',   build: buildMolecule   },
+  { id:'meccano',   label:'Meccanico',  build: buildMechanical },
+  { id:'cristallo', label:'Cristallo',  build: buildCrystal    },
+  { id:'elica',     label:'Elica',      build: buildHelix      },
+  { id:'organico',  label:'Organico',   build: buildOrganic    },
+  { id:'astro',     label:'Astro',      build: buildAstro      },
+];
+
+let currentObjIdx = 0;
+let examMode = false;
+let examAnswer = [];         // correct sequence [arrow1, arrow2]
+let userSequence = [];
+let score = 0, total = 0, streak = 0;
+let timerInterval = null, timeLeft = 600;
+
+// ── SCENE SETUP ──────────────────────────────────────────────
+function makeScene(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(canvas.width, canvas.height);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x13161e);
+
+  const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
+  camera.position.set(2.8, 2.2, 2.8);
+  camera.lookAt(0, 0, 0);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+  scene.add(ambient);
+
+  const dir1 = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir1.position.set(5, 8, 5);
+  dir1.castShadow = true;
+  scene.add(dir1);
+
+  const dir2 = new THREE.DirectionalLight(0x4f8ef7, 0.3);
+  dir2.position.set(-4, 2, -4);
+  scene.add(dir2);
+
+  const point = new THREE.PointLight(0xa07ee8, 0.4, 10);
+  point.position.set(-2, 3, 2);
+  scene.add(point);
+
+  // Pivot for rotation — cube AND object rotate together
+  const pivot = new THREE.Group();
+  scene.add(pivot);
+
+  // Cube geometry (2.4 units)
+  const cubeGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
+
+  // Wireframe edges — bright, always visible
+  const edges = new THREE.EdgesGeometry(cubeGeo);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x88bbff });
+  const wireframe = new THREE.LineSegments(edges, lineMat);
+  pivot.add(wireframe);
+
+  // Faces — DoubleSide so visible from any angle
+  const faceMat = new THREE.MeshBasicMaterial({
+    color: 0x2266cc,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const cubeFaces = new THREE.Mesh(cubeGeo, faceMat);
+  pivot.add(cubeFaces);
+
+  // Separate group for 3D objects inside the cube
+  const objectGroup = new THREE.Group();
+  pivot.add(objectGroup);
+
+  // Floor shadow plane
+  const floorGeo = new THREE.PlaneGeometry(8, 8);
+  const floorMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.4;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  return { renderer, scene, camera, pivot, objectGroup, canvas };
+}
+
+const startS = makeScene('canvas-start');
+const targetS = makeScene('canvas-target');
+
+// ── OBJECT BUILDERS ──────────────────────────────────────────
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+// ── SHARED COLOR SEED ────────────────────────────────────────
+let _sharedRands = [];
+let _sharedIdx = 0;
+function seedSharedRands(count) {
+  _sharedRands = Array.from({length: count}, () => Math.random());
+  _sharedIdx = 0;
+}
+function sr() { return _sharedRands[_sharedIdx++ % _sharedRands.length]; }
+function pickColorS(arr) { return arr[Math.floor(sr() * arr.length)]; }
+function randS(a, b) { return a + sr() * (b - a); }
+
+function makeMat(color, metalness = 0.3, roughness = 0.5) {
+  return new THREE.MeshStandardMaterial({ color, metalness, roughness });
+}
+
+function buildMolecule(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const atoms = [
+    [0,0,0, .22], [.55,.4,-.1,.16], [-.5,.35,.2,.18],
+    [.1,-.55,.3,.15], [.3,.1,.6,.13], [-.3,-.3,-.5,.17],
+    [.5,-.2,-.4,.12], [-.1,.6,.4,.14],
+  ];
+  const cols = COLORS.sphere;
+  atoms.forEach(([x,y,z,r]) => {
+    const g = new THREE.SphereGeometry(r, 16, 16);
+    const m = new THREE.Mesh(g, makeMat(pickColorS(cols), .15, .6));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    pivot.add(m);
+  });
+  const bonds = [[0,1],[0,2],[0,3],[1,4],[2,5],[3,6],[4,7]];
+  bonds.forEach(([a,b]) => {
+    const pa = new THREE.Vector3(...atoms[a].slice(0,3));
+    const pb = new THREE.Vector3(...atoms[b].slice(0,3));
+    addBond(pivot, pa, pb, 0xaaaaaa);
+  });
+}
+
+function addBond(pivot, a, b, color = 0x888888) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const g = new THREE.CylinderGeometry(.04, .04, len, 8);
+  const m = new THREE.Mesh(g, makeMat(color, .5, .4));
+  m.position.copy(a).addScaledVector(dir.normalize(), len / 2);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+  pivot.add(m);
+}
+
+function buildMechanical(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.5,.9,.3), makeMat(0x556677, .8, .3));
+  body.castShadow = true;
+  pivot.add(body);
+  [[-0.5,0.2,0],[0.5,-0.1,0]].forEach(([x,y,z]) => {
+    const g = new THREE.Mesh(new THREE.TorusGeometry(.28,.07,8,20), makeMat(pickColorS(COLORS.torus),.7,.2));
+    g.position.set(x,y,z);
+    g.rotation.y = Math.PI/3;
+    g.castShadow = true;
+    pivot.add(g);
+  });
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.9,12), makeMat(0x778899,.6,.3));
+  pipe.rotation.z = Math.PI/2;
+  pipe.position.set(0,.45,0);
+  pipe.castShadow = true;
+  pivot.add(pipe);
+  [[-.3,-.5,.2],[.35,.5,-.15]].forEach(([x,y,z]) => {
+    const c = new THREE.Mesh(new THREE.ConeGeometry(.12,.35,10), makeMat(pickColorS(COLORS.cone),.4,.5));
+    c.position.set(x,y,z);
+    c.rotation.z = randS(-1,1);
+    c.castShadow = true;
+    pivot.add(c);
+  });
+  const sphPos = [[-.5,.3,-.2],[.4,-.4,.1],[-.2,.0,.5],[.3,.4,-.3],[.0,-.5,.2]];
+  sphPos.forEach(([x,y,z]) => {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(.07,10,10), makeMat(pickColorS(COLORS.sphere),.3,.6));
+    s.position.set(x,y,z);
+    s.castShadow = true;
+    pivot.add(s);
+  });
+}
+
+function buildCrystal(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const shapes = [
+    [0,0,0,.18,.5,.18,0,0,0],
+    [.3,.3,0,.12,.4,.12,0,Math.PI/4,0],
+    [-.3,.1,.2,.1,.35,.1,Math.PI/6,0,Math.PI/5],
+    [.1,-.4,-.1,.15,.45,.15,-Math.PI/7,Math.PI/3,0],
+    [-.2,-.2,.3,.09,.3,.09,0,Math.PI/6,Math.PI/4],
+    [.4,-.1,.1,.08,.25,.08,Math.PI/5,0,-Math.PI/3],
+  ];
+  const opacities = [.85,.9,.75,.88,.92,.80];
+  shapes.forEach(([x,y,z,rx,ry,rz,ax,ay,az], i) => {
+    const g = new THREE.OctahedronGeometry(.15);
+    const m = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({
+      color: pickColorS(COLORS.crystal),
+      metalness: .1, roughness: .05,
+      transparent: true, opacity: opacities[i],
+    }));
+    m.position.set(x,y,z);
+    m.rotation.set(ax,ay,az);
+    m.scale.set(rx/0.18, ry/0.5, rz/0.18);
+    m.castShadow = true;
+    pivot.add(m);
+  });
+}
+
+function buildHelix(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const helixCols = COLORS.helix;
+  const col1 = pickColorS(helixCols);
+  const col2 = pickColorS(helixCols);
+  [0, Math.PI].forEach((offset, hi) => {
+    const col = hi === 0 ? col1 : col2;
+    const curve = new THREE.CatmullRomCurve3(
+      Array.from({length:20}, (_,i) => {
+        const t = i / 19;
+        const angle = t * Math.PI * 3 + offset;
+        return new THREE.Vector3(
+          Math.cos(angle) * .4,
+          (t - .5) * 1.4,
+          Math.sin(angle) * .4
+        );
+      })
+    );
+    const g = new THREE.TubeGeometry(curve, 60, .05, 8, false);
+    const m = new THREE.Mesh(g, makeMat(col, .5, .3));
+    m.castShadow = true;
+    pivot.add(m);
+  });
+  for(let i=0;i<8;i++){
+    const t = i/7;
+    const angle = t * Math.PI * 3;
+    const y = (t - .5) * 1.4;
+    const a = new THREE.Vector3(Math.cos(angle)*.4, y, Math.sin(angle)*.4);
+    const b = new THREE.Vector3(Math.cos(angle+Math.PI)*.4, y, Math.sin(angle+Math.PI)*.4);
+    addBond(pivot, a, b, 0xffffff);
+  }
+  [[0,.7,0],[0,-.7,0]].forEach(([x,y,z]) => {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(.14,14,14), makeMat(0xf39c12,.2,.5));
+    s.position.set(x,y,z);
+    pivot.add(s);
+  });
+}
+
+function buildOrganic(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const blobColors = [0x74b9ff,0xff7675,0x55efc4,0xfdcb6e,0xa29bfe,0xfd79a8];
+  const blobs = [
+    [0,0,0,1.2,1,1],
+    [.4,.3,.1,.8,.9,.7],
+    [-.35,.1,.3,.7,.8,.6],
+    [.1,-.45,.2,.6,.7,.8],
+    [-.2,.4,-.2,.5,.6,.5],
+    [.3,-.2,-.35,.4,.5,.45],
+  ];
+  blobs.forEach(([x,y,z,sx,sy,sz], i) => {
+    const g = new THREE.SphereGeometry(.25, 20, 20);
+    const m = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({
+      color: blobColors[i], metalness:0, roughness:.7,
+      transparent:true, opacity:.88,
+    }));
+    m.position.set(x,y,z);
+    m.scale.set(sx,sy,sz);
+    m.castShadow = true;
+    pivot.add(m);
+  });
+  const tc = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-.5,-.6,.3),
+    new THREE.Vector3(-.1,-.2,.5),
+    new THREE.Vector3(.2,.1,.3),
+    new THREE.Vector3(.5,.5,-.1),
+  ]);
+  const tg = new THREE.TubeGeometry(tc, 40, .04, 6, false);
+  pivot.add(new THREE.Mesh(tg, makeMat(0x43e97b,.3,.6)));
+}
+
+function buildAstro(pivot) {
+  clearPivot(pivot);
+  _sharedIdx = 0;
+  const center = new THREE.Mesh(new THREE.SphereGeometry(.25,20,20), makeMat(0xf8f8f8,.6,.2));
+  center.castShadow = true;
+  pivot.add(center);
+  // Pre-computed spike directions (fixed, not random) so both cubes match
+  const spikes = [
+    [0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],
+    [.7,.7,0],[-.7,.7,0],[.7,-.7,0],[-.7,-.7,0],
+    [.7,0,.7],[-.7,0,.7],[.7,0,-.7],[-.7,0,-.7],
+    [0,.7,.7],[0,-.7,.7],[0,.7,-.7],[0,-.7,-.7],
+    [.58,.58,.58],[-.58,.58,.58],
+  ];
+  const spikeColors = COLORS.mixed;
+  const tipColors   = COLORS.sphere;
+  const spikeLens   = [.5,.45,.4,.55,.35,.48,.52,.38,.42,.44,.5,.36,.46,.5,.4,.42,.52,.38,.44,.46];
+  spikes.forEach((dir, i) => {
+    const d = new THREE.Vector3(...dir).normalize();
+    const len = spikeLens[i];
+    const g = new THREE.CylinderGeometry(.02,.01,len,6);
+    const m = new THREE.Mesh(g, makeMat(pickColorS(spikeColors),.5,.3));
+    m.position.copy(d).multiplyScalar(.25 + len/2);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), d);
+    m.castShadow = true;
+    pivot.add(m);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(.03,8,8), makeMat(pickColorS(tipColors),.2,.6));
+    tip.position.copy(d).multiplyScalar(.25 + len);
+    pivot.add(tip);
+  });
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(.55,.04,8,40),
+    makeMat(0x4f8ef7,.7,.2)
+  );
+  ring.rotation.x = Math.PI/4;
+  ring.castShadow = true;
+  pivot.add(ring);
+}
+
+function clearPivot(pivot) {
+  while(pivot.children.length) {
+    const c = pivot.children[0];
+    pivot.remove(c);
+    if(c.geometry) c.geometry.dispose();
+    if(c.material) c.material.dispose();
+  }
+}
+
+// ── ROTATION SYSTEM ─────────────────────────────────────────
+
+const EULER_STEP = Math.PI / 2;
+const rotQueue = [];
+let rotRunning = false;
+
+function rotateStep(pivot, axis, sign) {
+  rotQueue.push({ pivot, axis, sign });
+  if(!rotRunning) processRotQueue();
+}
+
+function processRotQueue() {
+  if(rotQueue.length === 0) { rotRunning = false; return; }
+  rotRunning = true;
+  const { pivot, axis, sign } = rotQueue.shift();
+
+  const stepAngle = sign * EULER_STEP;
+  const axisVec = axis === 'y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+  const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
+
+  const startQuat = pivot.quaternion.clone();
+  const endQuat = stepQuat.multiply(startQuat);
+
+  const dur = 260;
+  const t0 = performance.now();
+
+  function easeInOut(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  function frame(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    THREE.Quaternion.slerp(startQuat, endQuat, pivot.quaternion, easeInOut(p));
+    if(p < 1) { requestAnimationFrame(frame); }
+    else { pivot.quaternion.copy(endQuat); processRotQueue(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function applyArrowInstant(pivot, arrow) {
+  const r = arrowToRot(arrow);
+  const axisVec = r.axis === 'y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+  const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, r.sign * EULER_STEP);
+  stepQuat.multiply(pivot.quaternion);
+  pivot.quaternion.copy(stepQuat);
+}
+
+// Arrow → rotation params
+function arrowToRot(arrow) {
+  if(arrow === '→') return { axis:'y', sign:  1 };
+  if(arrow === '←') return { axis:'y', sign: -1 };
+  if(arrow === '↓') return { axis:'x', sign:  1 };
+  if(arrow === '↑') return { axis:'x', sign: -1 };
+}
+
+
+
+// ── RENDER LOOP ─────────────────────────────────────────────
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+  startS.renderer.render(startS.scene, startS.camera);
+  targetS.renderer.render(targetS.scene, targetS.camera);
+}
+renderLoop();
+
+// ── EXAM MODE ───────────────────────────────────────────────
+const ARROWS_ALL = ['→','←','↓','↑'];
+
+function generateQuestion() {
+  // Pick random object
+  loadObject(currentObjIdx);
+
+  // Reset start pivot
+  startS.pivot.rotation.set(
+    rand(0, Math.PI*2),
+    rand(0, Math.PI*2),
+    0
+  );
+  // Snap to 90° grid
+  const snap = v => Math.round(v / (Math.PI/2)) * (Math.PI/2);
+  startS.pivot.rotation.x = snap(startS.pivot.rotation.x);
+  startS.pivot.rotation.y = snap(startS.pivot.rotation.y);
+
+  // Copy start rotation to target
+  targetS.pivot.rotation.copy(startS.pivot.rotation);
+
+  // Pick 2 random rotations
+  examAnswer = [
+    ARROWS_ALL[Math.floor(Math.random() * 4)],
+    ARROWS_ALL[Math.floor(Math.random() * 4)],
+  ];
+
+  // Apply to target pivot (instant, no animation)
+  examAnswer.forEach(arrow => {
+    applyArrowInstant(targetS.pivot, arrow);
+  });
+
+  // Build answer options (5 choices)
+  buildAnswerButtons();
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  userSequence = [];
+  updateSeqDisplay();
+}
+
+function buildAnswerButtons() {
+  const container = document.getElementById('answers');
+  container.innerHTML = '';
+
+  // Generate 4 wrong options + 1 correct
+  const correct = examAnswer.join(' ');
+  const options = new Set([correct]);
+  while(options.size < 5) {
+    const a = ARROWS_ALL[Math.floor(Math.random()*4)];
+    const b = ARROWS_ALL[Math.floor(Math.random()*4)];
+    options.add(a + ' ' + b);
+  }
+
+  // Shuffle
+  const arr = [...options].sort(() => Math.random() - .5);
+  const labels = ['(A)','(B)','(C)','(D)','(E)'];
+
+  arr.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.dataset.value = opt;
+    btn.dataset.correct = opt === correct ? '1' : '0';
+    btn.innerHTML = `<span style="color:var(--text3);margin-right:6px">${labels[i]}</span>${opt}`;
+    btn.addEventListener('click', () => handleAnswer(btn, opt));
+    container.appendChild(btn);
+  });
+}
+
+function handleAnswer(btn, opt) {
+  const isCorrect = btn.dataset.correct === '1';
+  total++;
+  document.getElementById('total-val').textContent = total;
+
+  // Reveal all
+  document.querySelectorAll('.answer-btn').forEach(b => {
+    b.disabled = true;
+    if(b.dataset.correct === '1') b.classList.add('correct');
+    else if(b === btn && !isCorrect) b.classList.add('wrong');
+  });
+
+  if(isCorrect) {
+    score++;
+    streak++;
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('streak-val').textContent = streak;
+    document.getElementById('feedback').textContent = '✓ Corretto! ' + opt;
+    document.getElementById('feedback').className = 'feedback ok';
+    document.getElementById('panel-start').classList.add('flash-ok');
+    setTimeout(() => document.getElementById('panel-start').classList.remove('flash-ok'), 500);
+  } else {
+    streak = 0;
+    document.getElementById('streak-val').textContent = streak;
+    document.getElementById('feedback').textContent = `✗ Sbagliato. La risposta era: ${examAnswer.join(' ')}`;
+    document.getElementById('feedback').className = 'feedback fail';
+  }
+
+  // Auto-next after 1.5s
+  setTimeout(() => {
+    if(examMode) generateQuestion();
+  }, 1800);
+}
+
+function updateSeqDisplay() {
+  const div = document.getElementById('seq-display');
+  div.innerHTML = '';
+  userSequence.forEach(a => {
+    const s = document.createElement('div');
+    s.className = 'seq-arrow';
+    s.textContent = a;
+    div.appendChild(s);
+  });
+}
+
+// ── OBJECT LOADING ──────────────────────────────────────────
+function loadObject(idx) {
+  const type = OBJECT_TYPES[idx];
+  seedSharedRands(200);
+  _sharedIdx = 0;
+  type.build(startS.objectGroup);
+  _sharedIdx = 0;
+  type.build(targetS.objectGroup);
+}
+
+function buildObjectSelector() {
+  const container = document.getElementById('object-selector');
+  OBJECT_TYPES.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'obj-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = t.label;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentObjIdx = i;
+      loadObject(i);
+      if(examMode) generateQuestion();
+    });
+    container.appendChild(btn);
+  });
+}
+
+// ── TIMER ───────────────────────────────────────────────────
+function formatTime(s) {
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+function startTimer() {
+  timeLeft = 600;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft = Math.max(0, timeLeft - 1);
+    document.getElementById('timer-val').textContent = formatTime(timeLeft);
+    if(timeLeft === 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+// ── UI WIRING ───────────────────────────────────────────────
+document.getElementById('btn-right').addEventListener('click', () => {
+  if(!examMode) rotateStep(startS.pivot, 'y',  1);
+});
+document.getElementById('btn-left').addEventListener('click', () => {
+  if(!examMode) rotateStep(startS.pivot, 'y', -1);
+});
+document.getElementById('btn-down').addEventListener('click', () => {
+  if(!examMode) rotateStep(startS.pivot, 'x',  1);
+});
+document.getElementById('btn-up').addEventListener('click', () => {
+  if(!examMode) rotateStep(startS.pivot, 'x', -1);
+});
+
+document.addEventListener('keydown', e => {
+  if(examMode) return;
+  if(e.key === 'ArrowRight') { e.preventDefault(); rotateStep(startS.pivot,'y', 1); }
+  if(e.key === 'ArrowLeft')  { e.preventDefault(); rotateStep(startS.pivot,'y',-1); }
+  if(e.key === 'ArrowDown')  { e.preventDefault(); rotateStep(startS.pivot,'x', 1); }
+  if(e.key === 'ArrowUp')    { e.preventDefault(); rotateStep(startS.pivot,'x',-1); }
+});
+
+document.getElementById('btn-reset-view').addEventListener('click', () => {
+  startS.pivot.rotation.set(0,0,0);
+});
+
+document.getElementById('btn-toggle-mode').addEventListener('click', () => {
+  examMode = !examMode;
+  document.getElementById('mode-badge').textContent = examMode ? '● Esercizio' : '● Libera';
+  document.getElementById('mode-badge').className = 'mode-badge ' + (examMode ? 'exam' : 'free');
+  document.getElementById('btn-toggle-mode').textContent = examMode ? 'Modalità Libera' : 'Modalità Esercizio';
+  document.getElementById('free-controls').style.display = examMode ? 'none' : 'flex';
+  document.getElementById('exam-controls').style.display = examMode ? 'flex' : 'none';
+
+  if(examMode) {
+    startTimer();
+    generateQuestion();
+  } else {
+    clearInterval(timerInterval);
+    document.getElementById('timer-val').textContent = '10:00';
+    // Reset target to same as start
+    targetS.pivot.rotation.copy(startS.pivot.rotation);
+  }
+});
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  if(examMode) {
+    generateQuestion();
+  } else {
+    currentObjIdx = (currentObjIdx + 1) % OBJECT_TYPES.length;
+    document.querySelectorAll('.obj-btn').forEach((b,i) => {
+      b.classList.toggle('active', i === currentObjIdx);
+    });
+    loadObject(currentObjIdx);
+  }
+});
+
+// ── INIT ────────────────────────────────────────────────────
+buildObjectSelector();
+loadObject(0);
+startS.pivot.rotation.set(.4,.5,0);
+targetS.pivot.rotation.set(.4,.5,0);
+</script>
+</body>
+</html>
