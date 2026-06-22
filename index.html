@@ -849,10 +849,12 @@ function processRotQueue() {
     const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
     endQuat = stepQuat.clone().multiply(startQuat);
   } else {
-    // Horizontal right/left rotation remains local to the current cube.
-    axisVec = new THREE.Vector3(0, 1, 0);
+    // Horizontal movement is locked to the original horizontal axis.
+    // Even after up/down rotations, "Ruota destra" and "Ruota sinistra"
+    // continue to rotate around the cube's original vertical axis.
+    axisVec = getOriginalAHorizontalAxis();
     const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
-    endQuat = startQuat.clone().multiply(stepQuat);
+    endQuat = stepQuat.clone().multiply(startQuat);
   }
 
   const dur = 260;
@@ -880,10 +882,11 @@ function applyArrowInstant(pivot, arrow) {
     const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
     pivot.quaternion.copy(stepQuat.clone().multiply(pivot.quaternion));
   } else {
-    // Horizontal commands stay local.
-    const axisVec = new THREE.Vector3(0, 1, 0);
+    // Same rule as rotateStep():
+    // horizontal commands are locked to the original horizontal axis.
+    const axisVec = getOriginalAHorizontalAxis();
     const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
-    pivot.quaternion.copy(pivot.quaternion.clone().multiply(stepQuat));
+    pivot.quaternion.copy(stepQuat.clone().multiply(pivot.quaternion));
   }
 
   pivot.updateMatrixWorld(true);
@@ -942,6 +945,20 @@ function getOriginalAVerticalAxis() {
   );
 
   return new THREE.Vector3(1, 0, 0).applyEuler(e).normalize();
+}
+
+// Axis used by horizontal commands.
+// "Ruota destra" and "Ruota sinistra" must also stay locked to the
+// original cube orientation, not to the cube-local axis after other rotations.
+function getOriginalAHorizontalAxis() {
+  const e = new THREE.Euler(
+    START_SHOW_A_D_ROT.x,
+    START_SHOW_A_D_ROT.y,
+    START_SHOW_A_D_ROT.z,
+    'XYZ'
+  );
+
+  return new THREE.Vector3(0, 1, 0).applyEuler(e).normalize();
 }
 
 function visibleLateralFacesForScene(scenePack) {
