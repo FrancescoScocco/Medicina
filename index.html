@@ -836,16 +836,24 @@ function processRotQueue() {
   const { pivot, axis, sign } = rotQueue.shift();
 
   const stepAngle = sign * EULER_STEP;
-  const axisVec = axis === 'y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
-  const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
-
   const startQuat = pivot.quaternion.clone();
 
-  // Local-axis rotation:
-  // the command is applied to the cube's current orientation.
-  // This way, when the visible face A is in front and the user clicks "Ruota su",
-  // face A moves upward instead of face D.
-  const endQuat = startQuat.clone().multiply(stepQuat);
+  let axisVec;
+  let endQuat;
+
+  if(axis === 'x') {
+    // Vertical movement is locked to the original A-axis.
+    // Even after right/left rotations, "Ruota su" and "Ruota giù"
+    // continue to move face A vertically.
+    axisVec = getOriginalAVerticalAxis();
+    const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
+    endQuat = stepQuat.clone().multiply(startQuat);
+  } else {
+    // Horizontal right/left rotation remains local to the current cube.
+    axisVec = new THREE.Vector3(0, 1, 0);
+    const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
+    endQuat = startQuat.clone().multiply(stepQuat);
+  }
 
   const dur = 260;
   const t0 = performance.now();
@@ -863,12 +871,22 @@ function processRotQueue() {
 
 function applyArrowInstant(pivot, arrow) {
   const r = arrowToRot(arrow);
-  const axisVec = r.axis === 'y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
-  const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, r.sign * EULER_STEP);
+  const stepAngle = r.sign * EULER_STEP;
 
-  // Local-axis rotation, consistent with rotateStep().
-  // In particular, "↑" now sends face A upward from the A + D start view.
-  pivot.quaternion.copy(pivot.quaternion.clone().multiply(stepQuat));
+  if(r.axis === 'x') {
+    // Same rule as rotateStep():
+    // vertical commands are locked to the original A-axis.
+    const axisVec = getOriginalAVerticalAxis();
+    const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
+    pivot.quaternion.copy(stepQuat.clone().multiply(pivot.quaternion));
+  } else {
+    // Horizontal commands stay local.
+    const axisVec = new THREE.Vector3(0, 1, 0);
+    const stepQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, stepAngle);
+    pivot.quaternion.copy(pivot.quaternion.clone().multiply(stepQuat));
+  }
+
+  pivot.updateMatrixWorld(true);
 }
 
 // Arrow → rotation params
@@ -910,6 +928,20 @@ const FACE_NORMALS = {
 function setPivotRotation(pivot, rot) {
   pivot.rotation.set(rot.x, rot.y, rot.z);
   pivot.updateMatrixWorld(true);
+}
+
+// Axis used by vertical commands.
+// "Ruota su" and "Ruota giù" must always work on the original A-axis,
+// not on the current cube-local axis after right/left rotations.
+function getOriginalAVerticalAxis() {
+  const e = new THREE.Euler(
+    START_SHOW_A_D_ROT.x,
+    START_SHOW_A_D_ROT.y,
+    START_SHOW_A_D_ROT.z,
+    'XYZ'
+  );
+
+  return new THREE.Vector3(1, 0, 0).applyEuler(e).normalize();
 }
 
 function visibleLateralFacesForScene(scenePack) {
