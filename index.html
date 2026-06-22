@@ -408,6 +408,16 @@ const OBJECT_TYPES = [
   { id:'elica',     label:'Elica',      build: buildHelix      },
   { id:'organico',  label:'Organico',   build: buildOrganic    },
   { id:'astro',     label:'Astro',      build: buildAstro      },
+  { id:'satellite', label:'Satellite',  build: buildSatelliteArray },
+  { id:'orologio',  label:'Orologio',   build: buildClockwork },
+  { id:'neurale',   label:'Neurale',    build: buildNeuralCore },
+  { id:'stazione',  label:'Stazione',   build: buildSpaceStation },
+  { id:'frattale',  label:'Frattale',   build: buildFractalTree },
+  { id:'giroscopio',label:'Giroscopio', build: buildGyroEngine },
+  { id:'robotico',  label:'Robotico',   build: buildRobotCluster },
+  { id:'citta',     label:'Citta',      build: buildCrystalCity },
+  { id:'dna-plus',  label:'DNA+',       build: buildDNAComplex },
+  { id:'labirinto', label:'Labirinto',  build: buildLabyrinthCore },
 ];
 
 let currentObjIdx = 0;
@@ -812,6 +822,200 @@ function buildAstro(pivot) {
   pivot.add(ring);
 }
 
+
+// --- EXTRA COMPLEX OBJECT BUILDERS ---
+function addCylinderBetween(pivot, a, b, radius, color, metalness = .4, roughness = .45) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  if(len <= 0.0001) return;
+  const g = new THREE.CylinderGeometry(radius, radius, len, 10);
+  const m = new THREE.Mesh(g, makeMat(color, metalness, roughness));
+  m.position.copy(a).addScaledVector(dir.clone().normalize(), len / 2);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  m.castShadow = true;
+  pivot.add(m);
+}
+
+function buildSatelliteArray(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const core = new THREE.Mesh(new THREE.BoxGeometry(.34,.34,.34), makeMat(0xb8c7d9,.85,.22));
+  core.castShadow = true; pivot.add(core);
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(.18, 24, 24), makeMat(0x4f8ef7,.45,.25));
+  hub.castShadow = true; pivot.add(hub);
+  const arms = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1],[.7,.7,0],[-.7,.7,0],[.7,-.7,0],[-.7,-.7,0]];
+  arms.forEach((dArr, i) => {
+    const d = new THREE.Vector3(...dArr).normalize();
+    addCylinderBetween(pivot, new THREE.Vector3(0,0,0), d.clone().multiplyScalar(.72), .025, 0xd0d7e2, .75, .25);
+    const dish = new THREE.Mesh(new THREE.ConeGeometry(.14, .18, 24, 1, true), makeMat(i % 2 ? 0xffbe0b : 0xa29bfe, .55, .32));
+    dish.position.copy(d).multiplyScalar(.86); dish.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), d); dish.castShadow = true; pivot.add(dish);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(.32,.018,.18), makeMat(i % 3 ? 0x3a86ff : 0x00d4ff, .4, .28));
+    panel.position.copy(d).multiplyScalar(.55); panel.rotation.set(randS(-.5,.5), randS(-.5,.5), randS(-.5,.5)); panel.castShadow = true; pivot.add(panel);
+  });
+  for(let i=0;i<18;i++) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(randS(.025,.055), 10, 10), makeMat(pickColorS(COLORS.sphere), .25, .5));
+    s.position.set(randS(-.65,.65), randS(-.65,.65), randS(-.65,.65)); s.castShadow = true; pivot.add(s);
+  }
+}
+
+function buildClockwork(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const ringColors = [0xffbe0b, 0xfb5607, 0x8338ec, 0x3a86ff, 0x06d6a0];
+  for(let i=0;i<5;i++) {
+    const tor = new THREE.Mesh(new THREE.TorusGeometry(.18 + i * .11, .018, 8, 48), makeMat(ringColors[i], .8, .18));
+    tor.rotation.set(i * .55, i * .37, i * .22); tor.castShadow = true; pivot.add(tor);
+  }
+  for(let i=0;i<18;i++) {
+    const angle = i * Math.PI * 2 / 18;
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(.055,.12,.04), makeMat(i % 2 ? 0xd0d7e2 : 0x7c5cbf,.7,.25));
+    const radius = i % 2 ? .55 : .39;
+    tooth.position.set(Math.cos(angle)*radius, Math.sin(angle)*radius, randS(-.22,.22));
+    tooth.rotation.z = angle; tooth.rotation.x = randS(-.5,.5); tooth.castShadow = true; pivot.add(tooth);
+  }
+  [[new THREE.Vector3(-.55,0,0),new THREE.Vector3(.55,0,0)],[new THREE.Vector3(0,-.55,0),new THREE.Vector3(0,.55,0)],[new THREE.Vector3(0,0,-.55),new THREE.Vector3(0,0,.55)],[new THREE.Vector3(-.42,-.42,.25),new THREE.Vector3(.42,.42,-.25)]].forEach((ab, i) => addCylinderBetween(pivot, ab[0], ab[1], .026, ringColors[i], .7, .25));
+}
+
+function buildNeuralCore(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const nodes = [];
+  for(let i=0;i<24;i++) {
+    const theta = randS(0, Math.PI * 2), phi = randS(.2, Math.PI - .2), r = randS(.25, .8);
+    const pos = new THREE.Vector3(Math.sin(phi)*Math.cos(theta)*r, Math.cos(phi)*r, Math.sin(phi)*Math.sin(theta)*r);
+    nodes.push(pos);
+    const n = new THREE.Mesh(new THREE.SphereGeometry(randS(.035,.085), 14, 14), makeMat(pickColorS([0x00d4ff,0x43e97b,0xf093fb,0x4f8ef7,0xff9a3c]), .2, .45));
+    n.position.copy(pos); n.castShadow = true; pivot.add(n);
+  }
+  for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++) {
+    const dist = nodes[i].distanceTo(nodes[j]);
+    if(dist < .42 || (i + j) % 17 === 0) addCylinderBetween(pivot, nodes[i], nodes[j], .011, 0x88bbff, .35, .5);
+  }
+  const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(.78, 1), new THREE.MeshBasicMaterial({ color:0x4f8ef7, wireframe:true, transparent:true, opacity:.28 }));
+  shell.rotation.set(.3,.8,.1); pivot.add(shell);
+}
+
+function buildSpaceStation(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const main = new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.95,20), makeMat(0xcfd8dc,.75,.22));
+  main.rotation.z = Math.PI / 2; main.castShadow = true; pivot.add(main);
+  for(let i=0;i<4;i++) {
+    const a = i * Math.PI / 2, dir = new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
+    addCylinderBetween(pivot, new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(.78), .025, 0xd0d7e2,.75,.25);
+    const module = new THREE.Mesh(new THREE.BoxGeometry(.42,.08,.24), makeMat(i % 2 ? 0x4d96ff : 0x55efc4,.4,.35));
+    module.position.copy(dir).multiplyScalar(.9); module.rotation.z = a; module.rotation.x = randS(-.22,.22); module.castShadow = true; pivot.add(module);
+    for(let j=-1;j<=1;j+=2) {
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(.25,.018,.46), makeMat(0x3a86ff,.35,.28));
+      panel.position.copy(dir).multiplyScalar(.55).add(new THREE.Vector3(0,0,j*.38)); panel.rotation.z = a; panel.rotation.y = j * .35; panel.castShadow = true; pivot.add(panel);
+    }
+  }
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(.62,.025,8,64), makeMat(0xffbe0b,.7,.25)); ring1.rotation.x = Math.PI / 2; pivot.add(ring1);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(.42,.018,8,64), makeMat(0xa29bfe,.7,.25)); ring2.rotation.y = Math.PI / 2; pivot.add(ring2);
+}
+
+function buildFractalTree(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  function branch(start, dir, len, depth) {
+    const end = start.clone().add(dir.clone().normalize().multiplyScalar(len));
+    addCylinderBetween(pivot, start, end, .014 + depth * .007, depth % 2 ? 0x43e97b : 0xfdcb6e, .35, .55);
+    const leaf = new THREE.Mesh(new THREE.OctahedronGeometry(.035 + depth * .008), makeMat(pickColorS([0x55efc4,0x74b9ff,0xfd79a8,0xa29bfe,0xffbe0b]), .2, .5));
+    leaf.position.copy(end); leaf.castShadow = true; pivot.add(leaf);
+    if(depth <= 0) return;
+    const axis1 = new THREE.Vector3(randS(-1,1), randS(-1,1), randS(-1,1)).normalize();
+    const axis2 = new THREE.Vector3(randS(-1,1), randS(-1,1), randS(-1,1)).normalize();
+    branch(end, dir.clone().applyQuaternion(new THREE.Quaternion().setFromAxisAngle(axis1, randS(.45,.8))), len * .68, depth - 1);
+    branch(end, dir.clone().applyQuaternion(new THREE.Quaternion().setFromAxisAngle(axis2, -randS(.45,.8))), len * .66, depth - 1);
+    if(depth > 2) branch(end, dir.clone().applyQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), randS(-.9,.9))), len * .55, depth - 1);
+  }
+  branch(new THREE.Vector3(0,-.72,0), new THREE.Vector3(.15,1,.08), .45, 4);
+  branch(new THREE.Vector3(0,-.72,0), new THREE.Vector3(-.18,.9,-.12), .36, 3);
+}
+
+function buildGyroEngine(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const colors = [0x4f8ef7,0xffbe0b,0xfd79a8,0x55efc4,0xa29bfe];
+  for(let i=0;i<6;i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.25 + i * .065, .014, 8, 72), makeMat(colors[i % colors.length], .85, .18));
+    ring.rotation.set(i*.63, i*.41, i*.27); ring.castShadow = true; pivot.add(ring);
+  }
+  const core = new THREE.Mesh(new THREE.SphereGeometry(.16, 24, 24), makeMat(0xf8f8f8,.7,.18)); core.castShadow = true; pivot.add(core);
+  for(let i=0;i<12;i++) {
+    const a = i * Math.PI * 2 / 12;
+    addCylinderBetween(pivot, new THREE.Vector3(Math.cos(a)*.18, Math.sin(a)*.18, -.55), new THREE.Vector3(Math.cos(a + .45)*.34, Math.sin(a + .45)*.34, .55), .012, colors[i % colors.length], .65, .25);
+  }
+  for(let i=0;i<8;i++) {
+    const a = i * Math.PI * 2 / 8;
+    const blade = new THREE.Mesh(new THREE.ConeGeometry(.06, .38, 8), makeMat(colors[(i+2)%colors.length], .55, .35));
+    blade.position.set(Math.cos(a)*.52, Math.sin(a)*.52, randS(-.18,.18));
+    blade.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), new THREE.Vector3(Math.cos(a), Math.sin(a), randS(-.4,.4)).normalize());
+    blade.castShadow = true; pivot.add(blade);
+  }
+}
+
+function buildRobotCluster(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const bodyColors = [0x556677,0x8899aa,0x4f8ef7,0x7c5cbf,0xe74c3c];
+  for(let i=0;i<5;i++) {
+    const angle = i * Math.PI * 2 / 5, base = new THREE.Vector3(Math.cos(angle)*.35, randS(-.15,.25), Math.sin(angle)*.35);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.22,.28,.16), makeMat(bodyColors[i], .75, .25)); body.position.copy(base); body.rotation.set(randS(-.25,.25), angle, randS(-.25,.25)); body.castShadow = true; pivot.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.16,.12,.14), makeMat(0xd0d7e2,.55,.28)); head.position.copy(base).add(new THREE.Vector3(0,.24,0)); head.rotation.copy(body.rotation); head.castShadow = true; pivot.add(head);
+    for(let j=-1;j<=1;j+=2) {
+      addCylinderBetween(pivot, base.clone().add(new THREE.Vector3(j*.14,.06,0)), base.clone().add(new THREE.Vector3(j*randS(.25,.38), randS(-.1,.18), randS(-.18,.18))), .018, 0xcfd8dc, .65, .3);
+      addCylinderBetween(pivot, base.clone().add(new THREE.Vector3(j*.05,-.12,0)), base.clone().add(new THREE.Vector3(j*.09,-.28,randS(-.08,.08))), .02, 0xcfd8dc, .65, .3);
+    }
+  }
+  const antenna = new THREE.Mesh(new THREE.TorusKnotGeometry(.18,.025,70,8), makeMat(0xffbe0b,.7,.22)); antenna.rotation.set(.6,.2,.8); pivot.add(antenna);
+}
+
+function buildCrystalCity(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const cityColors = [0x74b9ff,0xfd79a8,0x55efc4,0xfdcb6e,0xa29bfe,0x4f8ef7];
+  for(let i=0;i<18;i++) {
+    const x = randS(-.62,.62), z = randS(-.62,.62), h = randS(.18,.78), sides = 4 + Math.floor(sr()*4);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(randS(.035,.09), randS(.05,.12), h, sides), new THREE.MeshPhysicalMaterial({ color: pickColorS(cityColors), metalness: .1, roughness: .05, transparent: true, opacity: randS(.65,.9) }));
+    tower.position.set(x, -.78 + h/2, z); tower.rotation.y = randS(0, Math.PI); tower.castShadow = true; pivot.add(tower);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(.08, .16, sides), makeMat(0xffffff,.25,.25)); cap.position.set(x, -.78 + h + .08, z); cap.rotation.y = tower.rotation.y; cap.castShadow = true; pivot.add(cap);
+  }
+  [[new THREE.Vector3(-.75,-.77,0),new THREE.Vector3(.75,-.77,0)],[new THREE.Vector3(0,-.77,-.75),new THREE.Vector3(0,-.77,.75)],[new THREE.Vector3(-.55,-.77,-.55),new THREE.Vector3(.55,-.77,.55)]].forEach((ab, i) => addCylinderBetween(pivot, ab[0], ab[1], .012, cityColors[i], .45, .35));
+}
+
+function buildDNAComplex(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const colorsA = [0x00d4ff,0x4f8ef7,0x43e97b], colorsB = [0xff9a3c,0xf093fb,0xffbe0b];
+  const strand1 = [], strand2 = [];
+  for(let i=0;i<28;i++) {
+    const t = i / 27, angle = t * Math.PI * 5.2, y = (t - .5) * 1.55;
+    strand1.push(new THREE.Vector3(Math.cos(angle)*.42, y, Math.sin(angle)*.42));
+    strand2.push(new THREE.Vector3(Math.cos(angle+Math.PI)*.42, y, Math.sin(angle+Math.PI)*.42));
+  }
+  pivot.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strand1), 90, .035, 8, false), makeMat(0x00d4ff,.5,.25)));
+  pivot.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strand2), 90, .035, 8, false), makeMat(0xf093fb,.5,.25)));
+  for(let i=0;i<14;i++) {
+    const idx = i * 2; addCylinderBetween(pivot, strand1[idx], strand2[idx], .018, i % 2 ? 0xffffff : 0xfdcb6e, .35, .5);
+    const a = new THREE.Mesh(new THREE.SphereGeometry(.045,10,10), makeMat(pickColorS(colorsA),.25,.45)); a.position.copy(strand1[idx]); pivot.add(a);
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.045,10,10), makeMat(pickColorS(colorsB),.25,.45)); b.position.copy(strand2[idx]); pivot.add(b);
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.62,.018,8,64), makeMat(0xa29bfe,.7,.3)); ring.rotation.set(Math.PI/2,.3,.7); pivot.add(ring);
+}
+
+function buildLabyrinthCore(pivot) {
+  clearPivot(pivot); _sharedIdx = 0;
+  const colors = [0x4f8ef7,0x7c5cbf,0xffbe0b,0x55efc4,0xe74c3c];
+  [-.42,-.14,.14,.42].forEach((y, li) => {
+    const size = .28 + li * .12;
+    for(let i=0;i<4;i++) {
+      const a = i * Math.PI / 2;
+      addCylinderBetween(pivot, new THREE.Vector3(Math.cos(a)*size,y,Math.sin(a)*size), new THREE.Vector3(Math.cos(a+Math.PI/2)*size,y,Math.sin(a+Math.PI/2)*size), .022, colors[(li+i)%colors.length], .65, .28);
+    }
+    const plate = new THREE.Mesh(new THREE.TorusGeometry(size, .012, 6, 48), makeMat(colors[li % colors.length], .55, .32)); plate.rotation.x = Math.PI / 2; plate.position.y = y; pivot.add(plate);
+  });
+  for(let i=0;i<16;i++) {
+    const a = i * Math.PI * 2 / 16, r = randS(.22,.72);
+    const start = new THREE.Vector3(Math.cos(a)*r, randS(-.5,.5), Math.sin(a)*r);
+    const end = new THREE.Vector3(Math.cos(a + randS(.15,.6))*r, randS(-.5,.5), Math.sin(a + randS(.15,.6))*r);
+    addCylinderBetween(pivot, start, end, .012, colors[i % colors.length], .45, .35);
+    const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(.04,0), makeMat(colors[(i+2)%colors.length], .3, .45)); orb.position.copy(end); pivot.add(orb);
+  }
+  const core = new THREE.Mesh(new THREE.DodecahedronGeometry(.16, 0), makeMat(0xf8f8f8,.75,.2)); core.castShadow = true; pivot.add(core);
+}
+
 function clearPivot(pivot) {
   while(pivot.children.length) {
     const c = pivot.children[0];
@@ -1130,7 +1334,7 @@ function updateSeqDisplay() {
 // ── OBJECT LOADING ──────────────────────────────────────────
 function loadObject(idx) {
   const type = OBJECT_TYPES[idx];
-  seedSharedRands(200);
+  seedSharedRands(900);
   _sharedIdx = 0;
   type.build(startS.objectGroup);
   _sharedIdx = 0;
