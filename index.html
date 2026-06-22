@@ -414,6 +414,7 @@ let currentObjIdx = 0;
 let examMode = false;
 let examAnswer = [];         // correct sequence [arrow1, arrow2]
 let userSequence = [];
+let questionStartQuat = null; // saved start orientation for Reset Vista during exercise mode
 let score = 0, total = 0, streak = 0;
 let timerInterval = null, timeLeft = 600;
 
@@ -943,6 +944,10 @@ function generateQuestion() {
   // The start cube always begins in a grounded position that shows faces A and D.
   setPivotRotation(startS.pivot, START_SHOW_A_D_ROT);
 
+  // Save the original orientation of this question.
+  // During exercise mode, Reset Vista returns the left cube here.
+  questionStartQuat = startS.pivot.quaternion.clone();
+
   // Generate a target view that shows two lateral faces,
   // but never the same A + D pair shown on the start cube.
   let attempts = 0;
@@ -1087,20 +1092,19 @@ function startTimer() {
 
 // ── UI WIRING ───────────────────────────────────────────────
 document.getElementById('btn-right').addEventListener('click', () => {
-  if(!examMode) rotateStep(startS.pivot, 'y',  1);
+  rotateStep(startS.pivot, 'y',  1);
 });
 document.getElementById('btn-left').addEventListener('click', () => {
-  if(!examMode) rotateStep(startS.pivot, 'y', -1);
+  rotateStep(startS.pivot, 'y', -1);
 });
 document.getElementById('btn-down').addEventListener('click', () => {
-  if(!examMode) rotateStep(startS.pivot, 'x',  1);
+  rotateStep(startS.pivot, 'x',  1);
 });
 document.getElementById('btn-up').addEventListener('click', () => {
-  if(!examMode) rotateStep(startS.pivot, 'x', -1);
+  rotateStep(startS.pivot, 'x', -1);
 });
 
 document.addEventListener('keydown', e => {
-  if(examMode) return;
   if(e.key === 'ArrowRight') { e.preventDefault(); rotateStep(startS.pivot,'y', 1); }
   if(e.key === 'ArrowLeft')  { e.preventDefault(); rotateStep(startS.pivot,'y',-1); }
   if(e.key === 'ArrowDown')  { e.preventDefault(); rotateStep(startS.pivot,'x', 1); }
@@ -1108,11 +1112,18 @@ document.addEventListener('keydown', e => {
 });
 
 document.getElementById('btn-reset-view').addEventListener('click', () => {
-  setPivotRotation(startS.pivot, START_SHOW_A_D_ROT);
+  // Stop pending manual rotations before resetting.
+  rotQueue.length = 0;
+  rotRunning = false;
 
-  if(!examMode) {
-    setPivotRotation(targetS.pivot, TARGET_FREE_ROT);
+  if(examMode && questionStartQuat) {
+    startS.pivot.quaternion.copy(questionStartQuat);
+    startS.pivot.updateMatrixWorld(true);
+    return;
   }
+
+  setPivotRotation(startS.pivot, START_SHOW_A_D_ROT);
+  setPivotRotation(targetS.pivot, TARGET_FREE_ROT);
 });
 
 document.getElementById('btn-toggle-mode').addEventListener('click', () => {
@@ -1163,5 +1174,3 @@ setPivotRotation(targetS.pivot, TARGET_FREE_ROT);
 </script>
 </body>
 </html>
-
-<!-- ciao -->
