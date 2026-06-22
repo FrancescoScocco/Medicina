@@ -415,6 +415,8 @@ let examMode = false;
 let examAnswer = [];         // correct sequence [arrow1, arrow2]
 let userSequence = [];
 let questionStartQuat = null; // saved start orientation for Reset Vista during exercise mode
+let examObjectQueue = [];
+let examObjectQueuePos = 0;
 let score = 0, total = 0, streak = 0;
 let timerInterval = null, timeLeft = 600;
 
@@ -986,8 +988,35 @@ function targetViewIsAllowed() {
   return lateralFaces.length === 2 && lateralFaces !== 'AD';
 }
 
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for(let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function resetExamObjectQueue() {
+  examObjectQueue = shuffleArray(OBJECT_TYPES.map((_, i) => i));
+  examObjectQueuePos = 0;
+}
+
+function getNextExamObjectIndex() {
+  if(examObjectQueue.length === 0 || examObjectQueuePos >= examObjectQueue.length) {
+    resetExamObjectQueue();
+  }
+
+  return examObjectQueue[examObjectQueuePos++];
+}
+
 function generateQuestion() {
-  // Pick random object
+  // In exercise mode, show all available objects one after another.
+  // After the last object, a new shuffled round starts automatically.
+  currentObjIdx = getNextExamObjectIndex();
+  document.querySelectorAll('.obj-btn').forEach((b,i) => {
+    b.classList.toggle('active', i === currentObjIdx);
+  });
   loadObject(currentObjIdx);
 
   // The start cube always begins in a grounded position that shows faces A and D.
@@ -1080,7 +1109,8 @@ function handleAnswer(btn, opt) {
     document.getElementById('feedback').className = 'feedback fail';
   }
 
-  // Auto-next after 1.5s
+  // Always move to the next object/question after the answer,
+  // both when the answer is correct and when it is wrong.
   setTimeout(() => {
     if(examMode) generateQuestion();
   }, 1800);
@@ -1188,6 +1218,7 @@ document.getElementById('btn-toggle-mode').addEventListener('click', () => {
 
   if(examMode) {
     startTimer();
+    resetExamObjectQueue();
     generateQuestion();
   } else {
     clearInterval(timerInterval);
